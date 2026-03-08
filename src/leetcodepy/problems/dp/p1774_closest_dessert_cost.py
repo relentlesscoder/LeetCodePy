@@ -4,50 +4,95 @@
 
 from functools import cache
 from math import inf
-from itertools import pairwise
+
 
 class Solution:
+    # time O(m * t), space O(t)
+    def closestCost(self, baseCosts: list[int], toppingCosts: list[int], target: int) -> int:
+        # 空间优化版 DP
+        res = inf
+        m = len(toppingCosts)
+        unique = list(set(baseCosts))
 
-    # time O(n * m * t), space O(m * t)
-    def closestCostDFSWithMemorization(self, baseCosts: list[int], toppingCosts: list[int], target: int) -> int:
+        dp = list(range(target + 1))
 
-        # 比较绝对值
-        def compare(a: int, b: int) -> int:
-            if abs(a) == abs(b):
-                return max(a, b)
-            elif abs(a) < abs(b):
-                return a
-            else:
-                return b
+        for i in range(m):
+            x = toppingCosts[i]
+            y = 2 * toppingCosts[i]
+            for c in range(target, -1, -1):
+                if c <= x:
+                    dp[c] = self._compare(dp[c], c - x)
+                elif c <= y:
+                    dp[c] = self._compare(dp[c], self._compare(dp[c - x], c - y))
+                else:
+                    dp[c] = self._compare(dp[c], self._compare(dp[c - x], dp[c - y]))
+        for x in unique:
+            res = self._compare(res, target - x if target <= x else dp[target - x])
+
+        return target - res
+
+    # time O(m * t), space O(m * t)
+    def closestCostDPWithGrid(
+        self, baseCosts: list[int], toppingCosts: list[int], target: int
+    ) -> int:
+        # 将记忆化搜索翻译成 DP
+        res = inf
+        m = len(toppingCosts)
+        unique = list(set(baseCosts))
+
+        dp = [[0] * (target + 1) for _ in range(m + 1)]
+        dp[0] = list(range(target + 1))
+
+        for i in range(m):
+            x = toppingCosts[i]
+            y = 2 * toppingCosts[i]
+            for c in range(target, -1, -1):
+                if c <= x:  # 不选或者选一个 - 选一个变成负数直接返回
+                    dp[i + 1][c] = self._compare(dp[i][c], c - x)
+                elif c <= y:  # 不选，选一个或者选两个 - 选两个变成负数直接返回
+                    dp[i + 1][c] = self._compare(dp[i][c], self._compare(dp[i][c - x], c - y))
+                else:  # 不选，选一个或者选两个
+                    dp[i + 1][c] = self._compare(
+                        dp[i][c], self._compare(dp[i][c - x], dp[i][c - y])
+                    )
+        for x in unique:
+            res = self._compare(res, target - x if target <= x else dp[m][target - x])
+
+        return target - res
+
+    # time O(m * t), space O(m * t)
+    def closestCostFSWithMemorization(
+        self, baseCosts: list[int], toppingCosts: list[int], target: int
+    ) -> int:
+        # 记忆化搜索
+        res = inf
+        m = len(toppingCosts)
+        unique = list(set(baseCosts))  # 优化: 去重
 
         @cache
         def dfs(i: int, c: int) -> int:
-            if i < 0: # 数组已遍历完返回当前的差值
+            # 搜索终止条件:
+            #   1. 数组已经遍历完
+            #   2. 当前成本已经超过目标，此时继续搜索不会得到更优解
+            if i == -1 or c <= 0:
                 return c
-            x = toppingCosts[i]
-            if c == x: # 差值达到 0
-                return 0
-            elif c < x: # 如果差值小于当前配料的价格
-                # 选 - 注意如果选当前的配料则差值会变负，立即返回因为继续处理
-                # 只能使这个差值的绝对值更大
-                s1 = c - x 
-                s2 = dfs(i - 1, c) # 不选
-                return compare(s1, s2)
-            else:
-                s1 = dfs(i - 1, c) # 不选
-                s2 = dfs(i - 1, c - x) # 选一个
-                s3 = dfs(i - 1, c - 2 * x) # 选两个
-                # 找到绝对值最小的差值
-                r2 = inf
-                for a, b in pairwise([s1, s2, s3, s1]):
-                    r1 = compare(a, b)
-                    r2 = compare(r1, r2)
-                return r2
+            return self._compare(
+                dfs(i - 1, c),
+                self._compare(dfs(i - 1, c - toppingCosts[i]), dfs(i - 1, c - 2 * toppingCosts[i])),
+            )
 
-        res = inf
-        m = len(toppingCosts)
-        unique = list(set(baseCosts)) # 优化: 去重 
         for x in unique:
-            ans = dfs(m - 1, target - x) # 计算与 target 绝对值最小的差值
-            res = compare(res, ans)
+            res = self._compare(res, dfs(m - 1, target - x))
+
         return target - res
+
+    @staticmethod
+    def _compare(a: int, b: int) -> int:
+        x = a if a >= 0 else -a
+        y = b if b >= 0 else -b
+        if x == y:
+            return a if a >= b else b
+        elif x < y:
+            return a
+        else:
+            return b
