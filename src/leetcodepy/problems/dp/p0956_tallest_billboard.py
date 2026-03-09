@@ -61,7 +61,7 @@ class Solution:
             if i == -1:
                 # 如果 s == 0 说明两边一样高，返回 0 代表当前没有差距了；
                 # 如果 s != 0 说明两边不一样高，返回一个很大的负数代表这个方案不可行。
-                return 0 if s == 0 else -(10**4)
+                return 0 if s == 0 else -(10**5)
             return max(
                 # 注意只需要统计放在左边的长度所以要加上 rods[i]
                 dfs(i - 1, rods[i] + s) + rods[i],  # 选择放在左边
