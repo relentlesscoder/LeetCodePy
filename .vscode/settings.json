@@ -6,8 +6,8 @@
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": "explicit",
-            "source.organizeImports.ruff": "explicit"
+            "source.fixAll.ruff": "always",
+            "source.organizeImports.ruff": "always"
         }
     },
     "terminal.integrated.env.osx": {
