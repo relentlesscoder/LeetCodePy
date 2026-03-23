@@ -32,22 +32,47 @@ dp = [list(range(n + 1))] + [[0] * (n + 1) for _ in range(m)]
 s = "hello"
 len(s)          # 5，len() 是内置函数，调用 s.__len__()
 s[i]            # 访问第 i 个字符
-s[i:j]          # 切片 [i, j)
+s[i:j]          # 切片 [i, j), 即 substring
+s[:3]           # "hel" 从头开始
+s[2:]           # "llo" 到末尾
+s[-2:]          # "lo" 最后2个
+s[::-1]         # "olleh" 反转字符串 (返回新字符串, str 不可变)
 ```
 
 ## 排序
 
 ```python
+# lambda: 匿名函数, lambda x: x[0] 等价于 def f(x): return x[0]
+# key 参数接收一个函数, 对每个元素调用, 用返回值来比较大小
+
 # 对 list 原地排序
 nums.sort()
 nums.sort(reverse=True)
 
-# 按某个 key 排序（不修改原 list）
+# sorted(): 返回新 list, 不修改原数据, 可对任何可迭代对象排序
 sorted(nums, key=lambda x: -x)
+
+# 多级排序: key 返回 tuple, 逐级比较
+arr.sort(key=lambda x: (x[0], -x[1]))    # 第一维升序, 第二维降序
 
 # 两个 list 合并后按 l1 的值逆序排序
 pairs = sorted(zip(l1, l2), key=lambda x: -x[0])
+
+# 按另一个 list 的值排序
+idx = sorted(range(len(a)), key=lambda i: b[i])
+a = [a[i] for i in idx]
+
+# 对 dict 按 value 排序
+sorted(d.items(), key=lambda x: x[1])
 ```
+
+**`sorted()` vs `list.sort()`:**
+
+| | `sorted(x)` | `x.sort()` |
+|---|---|---|
+| 返回 | 新 list | `None` |
+| 修改原数据 | 否 | 是 |
+| 适用对象 | 任何可迭代 | 仅 list |
 
 ## 数学
 
@@ -69,7 +94,24 @@ max(a, b)       # 两数取大
 sum(lst)        # 求和
 any(lst)        # 任意为真
 all(lst)        # 全部为真
+
+# zip: 将多个可迭代对象按位置配对, 返回 tuple
+list(zip(a, b))                      # [(a0,b0), (a1,b1), ...] 元素是 tuple
+[[x, y] for x, y in zip(a, b)]      # 元素是 list
+
+# tuple 默认比较: 先比第一个元素, 相同再比第二个, 依此类推
+# 所以 sorted(zip(a, b)) 先按 a 升序, a 相同按 b 升序
+sorted(zip(scores, ages))            # [(1,5), (3,1), (3,2)]
 ```
+
+**`tuple` vs `list`:**
+
+| | `tuple` | `list` |
+|---|---|---|
+| 可变 | 否, 创建后不能改 | 是, 可增删改 |
+| 语法 | `(1, 2)` | `[1, 2]` |
+| 可作 dict key / set 元素 | 是 (可哈希) | 否 |
+| 性能 | 稍快, 省内存 | 稍慢 |
 
 ## 数据类型范围
 
@@ -179,6 +221,14 @@ for j in range(i, n, k):    # j = i, i+k, i+2k, ...
 
 # 自增: Python 没有 i++, 用 i += 1
 i += 1
+
+# C 风格 for 循环用 while 替代:
+# for (int j = a, i = b; cond; j--, i++) → while
+j, i = a, b
+while j >= 0 and i < n:
+    # ...
+    j -= 1
+    i += 1
 ```
 
 ## 字符操作
@@ -186,6 +236,7 @@ i += 1
 ```python
 # Python 没有 char 类型, 'a' 就是长度为 1 的 str
 # 单引号和双引号完全等价: 'a' == "a"
+# 函数参数传字符也是 str, 没有专门的 char 类型: def foo(c: str)
 
 ord('a')                 # 97, 字符 → ASCII 码
 chr(97)                  # 'a', ASCII 码 → 字符
@@ -255,45 +306,20 @@ arr += [7, 8]        # 同 extend
 # 反转
 arr.reverse()        # 原地反转, O(n), 无返回值
 arr[::-1]            # 返回新数组, 不修改原数组
+
+# 自定义对象的 list
+nodes = [Node(i) for i in range(5)]
+nodes[0].val         # 访问属性
 ```
-
-## 树状数组 (BIT / Fenwick Tree)
-
-```python
-class BIT:
-    __slots__ = "tree"  # 限制属性, 省内存（可不写）
-
-    def __init__(self, n: int):
-        self.tree = [0] * (n + 1)  # 下标从 1 开始, 0 不用
-
-    def update(self, i: int, v: int) -> None:
-        while i < len(self.tree):
-            self.tree[i] += v      # 或 max
-            i += i & -i            # 加 lowbit, 往上更新
-
-    def pre(self, i: int) -> int:
-        res = 0
-        while i > 0:
-            res += self.tree[i]    # 或 max
-            i -= i & -i            # 减 lowbit, 往下查询
-        return res
-```
-
-每个 `tree[i]` 管辖区间长度 = `i & -i`（lowbit）:
-```
-tree[1] (001) → [1,1]   tree[5] (101) → [5,5]
-tree[2] (010) → [1,2]   tree[6] (110) → [5,6]
-tree[3] (011) → [3,3]   tree[7] (111) → [7,7]
-tree[4] (100) → [1,4]   tree[8](1000) → [1,8]
-```
-
-配合**离散化**使用: `sorted(set(nums))` 将值压缩到连续整数, 用 `bisect_left` 映射下标。
 
 ## 类 (Class)
 
 ```python
 class BIT:
-    __slots__ = "tree"  # 可选, 限制只能有 tree 属性, 省内存
+    # __slots__: 用固定数组代替 __dict__ 存属性, 省内存但不能动态加属性
+    # 创建大量小对象(如树节点)时有用, 平时可不写
+    __slots__ = "tree"              # 单个属性
+    # __slots__ = ("val", "left", "right")  # 多个属性用 tuple
 
     count = 0           # 类变量, 所有实例共享（类似 Java static）
 
@@ -316,10 +342,12 @@ class Solution:
         self.helper(5)  # ✅
         helper(5)       # ❌ NameError
 
-# 2. 没有访问控制, 靠命名约定
-self.public = 1       # 公开
-self._protected = 2   # 约定内部使用（实际可访问）
-self.__private = 3    # 名称改写为 _Foo__private（仍可访问）
+# 2. 没有访问控制, 靠命名约定（和 Java private 编译器强制禁止不同）
+self.public = 1       # 公开, 随便访问
+self._protected = 2   # 约定内部使用, 实际仍可访问, 看到 _ 就别从外部调用
+self.__private = 3    # Python 把 __x 改写成 _类名__x, 还是能访问
+# f.__private        # ❌ AttributeError
+# f._Foo__private    # 3, 仍可访问
 
 # 3. 不要把可变类型放在类变量上
 class Bad:

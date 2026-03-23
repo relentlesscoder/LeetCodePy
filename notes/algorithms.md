@@ -1,0 +1,204 @@
+# 算法模板
+
+## 树状数组 (BIT / Fenwick Tree)
+
+```python
+class BIT:
+    __slots__ = "tree"
+
+    def __init__(self, n: int):
+        self.tree = [0] * (n + 1)  # 下标从 1 开始, 0 不用
+
+    def update(self, i: int, v: int) -> None:
+        while i < len(self.tree):
+            self.tree[i] += v      # 或 max
+            i += i & -i            # 加 lowbit, 往上更新
+
+    def pre(self, i: int) -> int:
+        res = 0
+        while i > 0:
+            res += self.tree[i]    # 或 max
+            i -= i & -i            # 减 lowbit, 往下查询
+        return res
+```
+
+每个 `tree[i]` 管辖区间长度 = `i & -i`(lowbit):
+```
+tree[1] (001) → [1,1]   tree[5] (101) → [5,5]
+tree[2] (010) → [1,2]   tree[6] (110) → [5,6]
+tree[3] (011) → [3,3]   tree[7] (111) → [7,7]
+tree[4] (100) → [1,4]   tree[8](1000) → [1,8]
+```
+
+配合**离散化**使用: `sorted(set(nums))` 将值压缩到连续整数, 用 `bisect_left` 映射下标。
+
+**适用场景**: 需要频繁做单点更新 + 前缀查询(求和或求最大值), 如逆序对、区间求和、动态前缀最大值、LIS 优化。
+
+**注意**: 树状数组只能做前缀查询, 不能做任意区间最大值查询。前缀求和可以用差值算区间 `sum(l,r) = pre(r) - pre(l-1)`, 但前缀最大值不行 `max(l,r) ≠ pre(r) - pre(l-1)`。需要任意区间最大值时必须用线段树。
+
+### 原理
+
+核心思想: 利用二进制 lowbit (`i & -i`) 把数组拆分成不同大小的区间。
+
+每个 `tree[i]` 管辖 `lowbit(i)` 个元素, 即区间 `[i - lowbit(i) + 1, i]`。
+
+**结构图** (n=8):
+
+```mermaid
+graph TD
+    T8["tree[8]<br/>[1,8]"] --> T4["tree[4]<br/>[1,4]"]
+    T8 --> T6["tree[6]<br/>[5,6]"]
+    T8 --> T7["tree[7]<br/>[7,7]"]
+    T4 --> T2["tree[2]<br/>[1,2]"]
+    T4 --> T3["tree[3]<br/>[3,3]"]
+    T2 --> T1["tree[1]<br/>[1,1]"]
+    T6 --> T5["tree[5]<br/>[5,5]"]
+
+    style T8 fill:#f9d,stroke:#333
+    style T4 fill:#bbf,stroke:#333
+    style T6 fill:#bbf,stroke:#333
+    style T2 fill:#bfb,stroke:#333
+    style T3 fill:#bfb,stroke:#333
+    style T1 fill:#ffa,stroke:#333
+    style T5 fill:#ffa,stroke:#333
+    style T7 fill:#bfb,stroke:#333
+```
+
+**查询 pre(7)**: 减 lowbit 跳到前一个不重叠区间
+```
+7(111) → tree[7]=[7,7]
+6(110) → tree[6]=[5,6]  (7 - lowbit(7) = 6)
+4(100) → tree[4]=[1,4]  (6 - lowbit(6) = 4)
+0      → 停止            (4 - lowbit(4) = 0)
+结果 = tree[7] + tree[6] + tree[4] = [1,7] ✅
+```
+
+**更新 update(3)**: 加 lowbit 往上传播到所有包含该位置的节点
+```
+3(011) → tree[3]=[3,3]  ✅
+4(100) → tree[4]=[1,4]  ✅ (3 + lowbit(3) = 4)
+8(1000)→ tree[8]=[1,8]  ✅ (4 + lowbit(4) = 8)
+```
+
+**本质**: `pre(i)` = 把 i 的二进制中每个 1 对应的 tree 节点值加起来。i 有几个 1 就访问几个节点, 所以最多 log(n) 次。
+```
+pre(7) = pre(111) = tree[111] + tree[110] + tree[100]  → 3个1, 3个节点
+pre(6) = pre(110) = tree[110] + tree[100]              → 2个1, 2个节点
+```
+
+## 线段树 (Segment Tree)
+
+用数组存储完全二叉树, 支持**单点更新 + 区间查询**, 均为 O(log n)。
+
+```python
+class SegmentTree:
+    __slots__ = ["length", "tree"]
+
+    def __init__(self, n: int):
+        self.length = n
+        # 数组大小 = 2 * next_pow2(n)
+        # 叶子数向上对齐到 2 的幂再乘 2
+        self.tree = [0] * (2 << n.bit_length())
+
+    def query_all(self) -> int:
+        return self.tree[1]  # 根节点 = 整个区间的结果
+
+    def query(self, start: int, end: int) -> int:
+        return self._query(1, 0, self.length - 1, start, end)
+
+    def update(self, index: int, val: int) -> None:
+        self._update(1, 0, self.length - 1, index, val)
+
+    def _update(self, node, left, right, index, val):
+        if left == right:
+            self.tree[node] = val
+            return
+        mid = (left + right) // 2
+        if index <= mid:
+            self._update(node * 2, left, mid, index, val)
+        else:
+            self._update(node * 2 + 1, mid + 1, right, index, val)
+        self.tree[node] = self._merge(self.tree[node * 2], self.tree[node * 2 + 1])
+
+    def _query(self, node, left, right, start, end):
+        if left >= start and right <= end:
+            return self.tree[node]
+        mid = (left + right) // 2
+        if end <= mid:
+            return self._query(node * 2, left, mid, start, end)
+        if start > mid:
+            return self._query(node * 2 + 1, mid + 1, right, start, end)
+        return self._merge(
+            self._query(node * 2, left, mid, start, end),
+            self._query(node * 2 + 1, mid + 1, right, start, end),
+        )
+
+    def _merge(self, v1, v2):
+        return max(v1, v2)  # 改成 + 就变成区间求和
+```
+
+下标从 1 开始: node 的左子 = `node*2`, 右子 = `node*2+1`。
+
+**树状数组 vs 线段树:**
+
+| | 树状数组 (BIT) | 线段树 |
+|---|---|---|
+| 查询类型 | 前缀查询 | 任意区间查询 |
+| 代码量 | 少 | 多 |
+| 常数 | 小 | 大 |
+| 适用 | 前缀和/前缀最大值 | 任意区间操作 |
+
+**选择原则**: 能用树状数组就用树状数组(代码短, 常数小); 需要任意区间最大/最小值或区间修改时才用线段树。
+
+**应用场景:**
+
+| 场景 | 用 BIT | 用线段树 |
+|------|--------|----------|
+| 前缀求和 / 区间求和 | ✅ | ✅ |
+| 前缀最大值 | ✅ | ✅ |
+| 任意区间最大/最小值 | ❌ | ✅ |
+| LIS 优化 (值域前缀最大值) | ✅ | ✅ |
+| 逆序对计数 | ✅ | ✅ |
+| 动态排名 / 第 k 小 | ✅ | ✅ |
+| 带约束的区间查询 (如 [val-k, val-1]) | ❌ | ✅ |
+| 区间修改 + 区间查询 (懒标记) | ❌ | ✅ |
+
+## 字典树 (Trie)
+
+```python
+class TrieNode:
+    __slots__ = ("children", "is_end")
+
+    def __init__(self):
+        self.children = [None] * 26  # 26 个字母, None 表示无子节点
+        self.is_end = False
+
+class Trie:
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word: str) -> None:
+        node = self.root
+        for c in word:
+            i = ord(c) - ord('a')
+            if not node.children[i]:
+                node.children[i] = TrieNode()  # 按需创建
+            node = node.children[i]
+        node.is_end = True
+
+    def search(self, word: str) -> bool:
+        node = self.root
+        for c in word:
+            i = ord(c) - ord('a')
+            if not node.children[i]:
+                return False
+            node = node.children[i]
+        return node.is_end
+```
+
+**注意 children 初始化:**
+```python
+[None] * 26          # ✅ 先放 None, 需要时再创建实例
+[TrieNode()] * 26    # ❌ 26 个位置指向同一个实例
+[TrieNode() for _ in range(26)]  # ❌ 语法正确但会无限递归(每个子节点又创建26个)
+```

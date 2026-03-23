@@ -7,30 +7,6 @@ from bisect import bisect_left
 from functools import cache
 
 
-class BIT:
-    """树状数组(Binary Indexed Tree), 这里用 max 代替求和,
-    支持单点更新最大值和前缀最大值查询"""
-
-    __slots__ = "tree"
-
-    def __init__(self, n: int):
-        self.tree = [0] * (n + 1)
-
-    def update(self, index: int, val: int) -> None:
-        # 把下标 index 的值更新为 max(原值, val)
-        while index < len(self.tree):
-            self.tree[index] = max(self.tree[index], val)
-            index += index & -index  # 往上走, 更新管辖该位置的节点
-
-    def pre(self, index: int) -> int:
-        # 查询 [1, index] 范围内的最大值
-        res = 0
-        while index > 0:
-            res = max(res, self.tree[index])
-            index -= index & -index  # 往下走, 累计各段最大值
-        return res
-
-
 class Solution:
     # time O(n * log(n)), space O(n)
     def lengthOfLISBIT(self, nums: list[int]) -> int:
@@ -129,3 +105,27 @@ class Solution:
         for i in range(n):
             lcs = max(lcs, dfs(i))
         return lcs
+
+
+class BIT:
+    """树状数组(Binary Indexed Tree), 这里用 max 代替求和,
+    支持单点更新最大值和前缀最大值查询"""
+
+    __slots__ = "tree"
+
+    def __init__(self, n: int):
+        self.tree = [0] * (n + 1)
+
+    def update(self, index: int, val: int) -> None:
+        # 把下标 index 的值更新为 max(原值, val)
+        while index < len(self.tree):
+            self.tree[index] = max(self.tree[index], val)
+            index += index & -index  # 往上走, 更新管辖该位置的节点
+
+    def pre(self, index: int) -> int:
+        # 查询 [1, index] 范围内的最大值
+        res = 0
+        while index > 0:
+            res = max(res, self.tree[index])
+            index -= index & -index  # 往下走, 累计各段最大值
+        return res
