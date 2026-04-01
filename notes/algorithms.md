@@ -163,6 +163,40 @@ class SegmentTree:
 | 带约束的区间查询 (如 [val-k, val-1]) | ❌ | ✅ |
 | 区间修改 + 区间查询 (懒标记) | ❌ | ✅ |
 
+## 单调队列 (Monotonic Deque)
+
+维护滑动窗口的最大值/最小值, O(1) 更新。
+
+```python
+from collections import deque
+
+# 模板: 找最长子数组使得 max - min <= k
+max_q, min_q = deque(), deque()  # 单调递减/递增队列
+left, res = 0, 0
+for i in range(n):
+    # 维护单调递减队列 (max): 弹出尾部比当前小的
+    while max_q and nums[max_q[-1]] <= nums[i]:
+        max_q.pop()
+    max_q.append(i)
+    # 维护单调递增队列 (min): 弹出尾部比当前大的
+    while min_q and nums[min_q[-1]] >= nums[i]:
+        min_q.pop()
+    min_q.append(i)
+    # 收缩左边界直到 max - min <= k
+    while nums[max_q[0]] - nums[min_q[0]] > k:
+        left += 1
+        if max_q[0] < left:
+            max_q.popleft()
+        if min_q[0] < left:
+            min_q.popleft()
+    res = max(res, i - left + 1)  # 最长窗口
+```
+
+队列存**下标**, 队头 = 窗口最大/最小值。新元素从尾部进入, 弹出比它小(或大)的, 保持单调性。窗口收缩时从头部弹出过期元素。
+
+**适用场景**: 滑动窗口最大/最小值、DP 前缀和优化 (如 p3578)。
+相关题: p0239 (滑动窗口最大值), p1438 (最长连续子数组绝对差 <= k)。
+
 ## 字典树 (Trie)
 
 ```python

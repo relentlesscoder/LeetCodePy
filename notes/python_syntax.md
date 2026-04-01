@@ -196,17 +196,70 @@ s |= {3, 4}             # s = {1, 2, 3, 4}
 ## Dict
 
 ```python
+# Python 的 dict 就是 HashMap
 d = {}                   # 空 dict
 d = {"a": 1, "b": 2}    # 带初始值
 d["c"] = 3               # 设置/更新值
 d["a"]                   # 读取（不存在会 KeyError）
 d.get("x", 0)            # 读取（不存在返回默认值 0）
 "a" in d                 # O(1) 判断 key 是否存在（检查的是 key 不是 value）
+del d["a"]               # 删除
+
+# defaultdict: 访问不存在的 key 时自动用默认值初始化
+from collections import defaultdict
+d = defaultdict(int)     # 默认值 0
+d[5] += 1                # 不需要先判断 key 是否存在
+d = defaultdict(list)    # 默认值 []
+d["key"].append(1)       # 自动创建空 list 再 append
 ```
+
+## Deque (双端队列)
+
+```python
+from collections import deque
+dq = deque()
+```
+
+```
+        头部 (left/front)          尾部 (right/back)
+        ┌───┬───┬───┬───┐
+        │ 0 │ 1 │ 2 │ 3 │
+        └───┴───┴───┴───┘
+        dq[0]              dq[-1]
+```
+
+| 操作 | 方法 | 位置 | O |
+|------|------|------|---|
+| 尾部加入 | `dq.append(x)` | right | O(1) |
+| 头部加入 | `dq.appendleft(x)` | left | O(1) |
+| 尾部弹出 | `dq.pop()` | right | O(1) |
+| 头部弹出 | `dq.popleft()` | left | O(1) |
+| 看尾部 | `dq[-1]` | right | O(1) |
+| 看头部 | `dq[0]` | left | O(1) |
+| 长度 | `len(dq)` | | O(1) |
+| 判空 | `if dq:` / `if not dq:` | | O(1) |
+
+**Python vs Java Deque:**
+
+| Python | Java | 位置 |
+|--------|------|------|
+| `append(x)` | `offerLast(x)` | 尾部 |
+| `appendleft(x)` | `offerFirst(x)` | 头部 |
+| `pop()` | `pollLast()` | 尾部 |
+| `popleft()` | `pollFirst()` | 头部 |
+| `dq[-1]` | `peekLast()` | 尾部 |
+| `dq[0]` | `peekFirst()` | 头部 |
+
+注意: Java 的 `push/pop` 操作**头部** (栈语义), 与 Python 的 `append/pop` 操作**尾部**方向相反。
 
 ## 遍历
 
 ```python
+# range(stop)              → 0, 1, ..., stop-1
+# range(start, stop)       → start, start+1, ..., stop-1
+# range(start, stop, step) → start, start+step, ...
+# stop 是开区间, 不包含
+
 # enumerate: 同时拿到索引和值
 for i, c in enumerate(arr):
     print(i, c)  # i 是索引, c 是值
@@ -229,6 +282,11 @@ while j >= 0 and i < n:
     # ...
     j -= 1
     i += 1
+
+# for (int i = 2; i * i <= n; i++) → while 或 isqrt
+from math import isqrt
+for i in range(2, isqrt(n) + 1):  # 用 isqrt 转成 range
+    pass
 ```
 
 ## 字符操作
@@ -247,6 +305,26 @@ idx = ord(c) - ord('a')
 # 位运算中标记字符
 mask |= 1 << (ord(c) - ord('a'))
 ```
+
+## 运算符优先级 (从高到低)
+
+| 优先级 | 运算符 | 说明 |
+|--------|--------|------|
+| 最高 | `()` | 括号 |
+| | `**` | 幂 (右结合) |
+| | `+x` `-x` `~x` | 一元正、负、按位取反 |
+| | `*` `/` `//` `%` | 乘、除、整除、取模 (**同级**) |
+| | `+` `-` | 加、减 |
+| | `<<` `>>` | 位移 |
+| | `&` | 按位与 |
+| | `^` | 按位异或 |
+| | `\|` | 按位或 |
+| | `==` `!=` `<` `>` `<=` `>=` `in` `not in` `is` | 比较 |
+| | `not` | 逻辑非 |
+| | `and` | 逻辑与 |
+| 最低 | `or` | 逻辑或 |
+
+同级运算符从左到右结合, 除了 `**` 是右结合。
 
 ## 位运算
 
