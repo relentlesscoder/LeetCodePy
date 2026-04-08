@@ -5,7 +5,7 @@
 
 class Solution:
     # time O(n * k), space O(n)
-    def maxPalindromesDP(self, s: str, k: int) -> int:
+    def maxPalindromesDPCentralExpansion(self, s: str, k: int) -> int:
         # 中心扩展 + DP: 类似 p0132
         # dp[i+1]: s[0..i] 中最多不重叠回文子串数 (长度 >= k)
         # 贪心: 找到长度 >= k 的回文后立即 break, 取最短的合法回文

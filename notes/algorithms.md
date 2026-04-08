@@ -197,6 +197,84 @@ for i in range(n):
 **适用场景**: 滑动窗口最大/最小值、DP 前缀和优化 (如 p3578)。
 相关题: p0239 (滑动窗口最大值), p1438 (最长连续子数组绝对差 <= k)。
 
+## 预处理回文代价矩阵
+
+预计算 `cost[i][j]` = 把 `s[i..j]` 变成回文的最小替换次数, O(n^2) 时间和空间。
+
+```python
+n = len(s)
+cost = [[0] * n for _ in range(n)]
+for length in range(2, n + 1):       # 按区间长度从小到大填
+    for i in range(n - length + 1):
+        j = i + length - 1
+        cost[i][j] = cost[i + 1][j - 1] + (s[i] != s[j])
+```
+
+依赖关系: `cost[i][j]` 依赖左下方 `cost[i+1][j-1]` (更短的区间, 已算好)。
+
+```
+       j=0  j=1  j=2  j=3
+i=0  [  0    ①    ②    ③  ]     填表顺序:
+i=1  [       0    ①    ②  ]       对角线 = 0 (长度 1)
+i=2  [            0    ①  ]       ① 长度 2, ② 长度 3, ③ 长度 4
+i=3  [                 0  ]
+```
+
+**适用场景**: 区间划分 DP 中需要反复查询子串回文代价时, 用 O(1) 查表替代 O(n) 双指针, 将总复杂度从 O(k*n^3) 降到 O(k*n^2)。
+相关题: p1278 (Palindrome Partitioning III)。
+
+## 预处理回文判定矩阵
+
+预计算 `is_palin[i][j]` = `s[i..j]` 是否是回文, O(n^2) 时间和空间。
+
+```python
+n = len(s)
+is_palin = [[False] * n for _ in range(n)]
+for i in range(n - 1, -1, -1):       # 从后往前填
+    for j in range(i, n):
+        is_palin[i][j] = s[i] == s[j] and (j - i <= 2 or is_palin[i + 1][j - 1])
+```
+
+递推条件: `s[i] == s[j]` 且内部 `s[i+1..j-1]` 也是回文。`j - i <= 2` 处理长度 1~3 的 base case (去掉两端后为空或单字符, 天然回文)。
+
+依赖关系: `is_palin[i][j]` 依赖 `is_palin[i+1][j-1]` (下一行, 左一列), 所以 i 从大到小填。
+
+```
+以 s = "abba" 为例:
+
+         j=0   j=1   j=2   j=3
+i=0  [   T     F     F     T   ]     填表顺序: i 从下往上
+i=1  [         T     T     F   ]       i=3 → i=2 → i=1 → i=0
+i=2  [               T     F   ]     每行 j 从 i 到 n-1
+i=3  [                     T   ]
+
+is_palin[0][3] = (s[0]=='a' == s[3]=='a') and is_palin[1][2]
+               = True and True = True  → "abba" 是回文 ✅
+is_palin[1][2] = (s[1]=='b' == s[2]=='b') and (j-i <= 2)
+               = True and True = True  → "bb" 是回文 ✅
+```
+
+**与回文代价矩阵的区别:**
+- `is_palin[i][j]`: 布尔值, 判断是否回文 → 用于回文划分 (p0132)
+- `cost[i][j]`: 整数, 最少替换几个字符变成回文 → 用于回文划分最小修改 (p1278)
+- 两者依赖方向相同, 都依赖 `[i+1][j-1]`
+
+**适用场景**: 回文划分 DP 中需要 O(1) 判断子串是否回文。
+相关题: p0131 (Palindrome Partitioning), p0132 (Palindrome Partitioning II), p2472。
+
+## 区间划分 DP: 二分 vs DP
+
+区间划分问题的优化目标决定了能否用二分答案:
+
+| 优化目标 | 方法 | 复杂度 | 例题 |
+|----------|------|--------|------|
+| minimize(**max** of segment values) | 二分答案 + 贪心 | O(n * log V) | p0410 |
+| minimize(**sum** of segment values) | DP | O(k * n^2) | p1335 |
+
+**minimax → 二分**: 二分答案 mid, 贪心验证"每段代价 <= mid 能否分成 <= k 段"。段数 <= k 也合法, 因为多余的段可以继续拆分, 代价不会增大。
+
+**min-sum → DP**: 无法贪心验证"总代价 <= X?", 因为某段多分一个元素虽不增加本段代价, 但可能影响后续段的最优分配, 存在全局耦合。
+
 ## 字典树 (Trie)
 
 ```python

@@ -9,7 +9,7 @@ from math import inf
 
 class Solution:
     # time O(n^2), space O(n)
-    def minCutDPWithExpand(self, s: str) -> int:
+    def minCutDPWithCentralExpansion(self, s: str) -> int:
         # 中心扩展 + DP: 省去 O(n^2) 的回文预处理数组
         # dp[i+1]: s[0..i] 的最少划分段数
         # 从每个中心 m 向两边扩展, 找到回文 s[j..i] 时更新 dp[i+1]
