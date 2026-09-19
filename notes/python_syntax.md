@@ -1,5 +1,52 @@
 # Python 语法速查
 
+## 变量命名规则
+
+### 语法规则 (强制, 违反报错)
+
+1. 只能包含: 字母、数字、下划线 `_`; **不能以数字开头**
+2. 区分大小写: `count` 和 `Count` 是两个变量
+3. 不能用关键字: `class`, `def`, `for`, `if`, `lambda`, `return` 等
+   (`import keyword; keyword.kwlist` 可查全表)
+
+```python
+my_var = 1      # ✅
+_temp = 2       # ✅
+var2 = 3        # ✅
+2var = 4        # ❌ SyntaxError, 数字开头
+my-var = 5      # ❌ 减号不合法
+class = 6       # ❌ 关键字
+```
+
+### PEP 8 命名约定 (风格)
+
+| 类型 | 风格 | 示例 |
+|------|------|------|
+| 变量 / 函数 / 方法 | `snake_case` 小写+下划线 | `max_len`, `find_max_average` |
+| 类 | `PascalCase` 大驼峰 | `Solution`, `TreeNode` |
+| 常量 | `UPPER_SNAKE_CASE` | `MAX_SIZE = 128` |
+| 模块 / 文件名 | `snake_case` | `python_syntax.py` |
+| 包 (目录) | 全小写, 最好无下划线 | `sliding_window` |
+
+对比 Java: Java 的变量/方法用 `camelCase`, Python 用 `snake_case` ——
+这是两个语言最大的风格差异。
+
+### 下划线的特殊含义
+
+```python
+_internal      # 单前缀: 约定为内部使用 (类似 protected), import * 不会导入
+__private      # 双前缀: 类中触发名称改写, 变成 _ClassName__private
+__init__       # 双前后缀 (dunder): Python 保留的魔术方法, 不要自造
+_              # 单独下划线: 表示"不使用的值", 如 for _ in range(n)
+name_          # 后缀下划线: 避免与关键字冲突, 如 class_, type_
+```
+
+### 本 repo 的特例
+
+题解方法名保留 LeetCode 原始的 `camelCase` 签名 (如 `lengthOfLongestSubstring`),
+会触发 ruff N802 警告, 这是仓库约定接受的 (见 AGENTS.md);
+测试函数名遵循 PEP 8 用 `snake_case` (如 `test_length_of_longest_substring`)。
+
 ## List 初始化
 
 ```python
@@ -305,6 +352,49 @@ idx = ord(c) - ord('a')
 # 位运算中标记字符
 mask |= 1 << (ord(c) - ord('a'))
 ```
+
+### 对比 Java: 字符/整数互转
+
+Java 的 `char` 本质是 16 位整数, 可直接参与算术; Python 的字符是 `str`, 必须用
+`ord()` / `chr()` 显式转换。
+
+| Java | Python | 说明 |
+|------|--------|------|
+| `c - 'a'` | `ord(c) - ord('a')` | 小写字母映射到 0-25 |
+| `c - '0'` | `ord(c) - ord('0')` 或 `int(c)` | 数字字符转数值 |
+| `(char) (i + 'a')` | `chr(i + ord('a'))` | 整数转回字符 |
+| `counter[c]++` | `counter[ord(c)] += 1` | 数组下标不能直接用字符 |
+
+### 定长数组计数 (代替 HashMap)
+
+```python
+# Java: int[] counter = new int[128]
+counter = [0] * 128          # 全 ASCII 字符
+counter = [0] * 26           # 仅小写字母, 配合 ord(c) - ord('a')
+lastIndex = [-1] * 128       # 记录字符上次出现位置, -1 表示未出现
+
+counter[ord(c)] += 1                    # 全 ASCII, 直接用 ord(c) 做下标
+counter[ord(c) - ord('a')] += 1         # 仅小写字母, 映射到 0-25
+```
+
+性能提示: 热循环中可先把 `ord('a')` 提出来, 避免每轮重复调用:
+
+```python
+base = ord('a')
+for c in s:
+    counter[ord(c) - base] += 1
+```
+
+选择建议:
+
+| 方案 | 适用场景 |
+|------|----------|
+| `[0] * 26` / `[0] * 128` | 字符集已知且小 (小写字母/ASCII), 访问最快 |
+| `defaultdict(int)` | 任意 Unicode / 字符集未知, 无需 ord(), 更 Pythonic |
+| `Counter` | 需要 most_common() 等计数工具 |
+
+注意: `[0] * n` 只适用于不可变元素; 2D 数组要用 `[[0] * n for _ in range(m)]`
+(见上文 List 初始化)。
 
 ## 运算符优先级 (从高到低)
 
